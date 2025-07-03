@@ -1,4 +1,4 @@
-README
+Implementation of WeSpeR algorithm.
 
 * For the implementation and the experiments on the on WeSpeR, run the file WeSpeR.py
 
