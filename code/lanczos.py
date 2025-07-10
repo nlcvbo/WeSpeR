@@ -18,7 +18,7 @@ from matfree import decomp, funm, stochtrace, eig
 from pylanczos import PyLanczos
 
 @jit(nopython=True)
-def lanczos (A, v, K, ortho = False):
+def lanczos(A, v, K, ortho = False):
     n = len(v) 
     alpha, beta = np.zeros(K, dtype=A.dtype), np.zeros(K-1, dtype=A.dtype)
     V = np.zeros((K,n), dtype=A.dtype) # Orthonormal basis matrix

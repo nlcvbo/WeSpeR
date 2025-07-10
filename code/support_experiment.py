@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, root_scalar
@@ -213,10 +211,11 @@ def experiment_2():
 def experiment_3():
     n = 10000
     p = 1000
+        
     alpha = 5e0
     weight = "exp"
     
-    u = np.linspace(0,20,5010)    
+    u = np.linspace(0,20,5010)  
     tau_pop = np.array([1]*(p//5)+[3]*(2*p//5)+[10]*(p - p//5 - 2*p//5))
     t = np.array([1,3,10])
     w = np.array([0.2, 0.4, 0.4])
@@ -292,14 +291,29 @@ def experiment_8():
     
     plot_xF(n, p, wd, d, None, tau_pop, t, w , u, weight=weight, verbose=False)
     
+def experiment_9():
+    n = 1000
+    p = 2000
+        
+    alpha = 5e0
+    weight = "exp"
+    
+    u = np.linspace(-10,50,5010)  
+    tau_pop = np.array([1]*(p//5)+[3]*(2*p//5)+[10]*(p - p//5 - 2*p//5))
+    t = np.array([1,3,10])
+    w = np.array([0.2, 0.4, 0.4])
+    
+    plot_xF(n, p, None, None, alpha, tau_pop, t, w , u, weight=weight, verbose=False)
+    
 if __name__ == '__main__':
     # Execute this will reproduce every figure of support identification of the corpus and the appendix, this can take a while /!\
     print("Executing support identification experiments.")
-    experiment_1()
-    experiment_2()
-    experiment_3()
-    experiment_4()
-    experiment_5()
-    experiment_6()
-    experiment_7()
-    experiment_8()
+    # experiment_1()
+    # experiment_2()
+    # experiment_3()
+    # experiment_4()
+    # experiment_5()
+    # experiment_6()
+    # experiment_7()
+    # experiment_8()
+    experiment_9()
