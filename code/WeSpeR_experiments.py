@@ -8,10 +8,10 @@ from scipy.optimize import minimize
 import time
 import warnings
 
-from WeSpeR_MD_utils import f_xi, m_idx, WeSpeR_MD_minimization
-from WeSpeR_MD import WeSpeR_MD
 from WeSpeR_LD_utils import WeSpeR_LD_minimization
 from WeSpeR_LD import WeSpeR_LD
+from WeSpeR_MD_utils import f_xi, m_idx, WeSpeR_MD_minimization
+from WeSpeR_MD import WeSpeR_MD
 from WeSpeR_HD import WeSpeR_HD
 
 from nl_formulas import nl_cov_shrinkage, nl_prec_shrinkage
@@ -40,8 +40,8 @@ def WeSpeR_experiment_1(tau_init = None, p = 2000, n = 20000, plots = False):
     wd = wd/wd.sum(axis=0)
     d = d/(d*wd).sum(axis=0)
     
-    n_epochs_LD = 100
-    n_epochs_MD = 100
+    n_epochs_LD = 10
+    n_epochs_MD = 10
     lr = 5e-2
     omega = min(400, min(p,n))
     p_tau = p
@@ -165,7 +165,7 @@ def WeSpeR_experiment_1(tau_init = None, p = 2000, n = 20000, plots = False):
         loss_Snlb = np.linalg.norm(Snl -  np.diag(tau_pop), ord = 'fro')**2/p
         Pnl = estimator_LD.get_precision(d = d, wd = wd, weights = weights, w_args = w_args, method = 'root', verbose = False)
         loss_Pnlb = np.linalg.norm(Pnl -  np.diag(1/tau_pop), ord = 'fro')**2/p
-        tau_fit = estimator_LD.get_tau()
+        tau_fit_LD = estimator_LD.get_tau()
     else:
         estimator_LD = None
 
@@ -180,7 +180,7 @@ def WeSpeR_experiment_1(tau_init = None, p = 2000, n = 20000, plots = False):
         loss_Snlq = np.linalg.norm(Snl -  np.diag(tau_pop), ord = 'fro')**2/p
         Pnl = estimator_MD.get_precision(d = d, wd = wd, weights = weights, w_args = w_args, method = 'root', verbose = False)
         loss_Pnlq = np.linalg.norm(Pnl -  np.diag(1/tau_pop), ord = 'fro')**2/p
-        tau_fit = estimator_MD.get_tau()
+        tau_fit_MD = estimator_MD.get_tau()
     else:
         estimator_MD = None
     
@@ -204,47 +204,90 @@ def WeSpeR_experiment_1(tau_init = None, p = 2000, n = 20000, plots = False):
     print("Loss/PRIAL Por: \t", np.around(loss_Poracle,3), "\t|\t", np.around(1-loss_Poracle/loss_P,5))
     
     if plots:
-        # Plot the results        
-        Fx = f_xi.apply
-        output = Fx(tau_fit, None, d, wd, c, mu, weights, w_args, omega, method, False) 
-        nu = output[-1].to(int)
-        omegai = output[-nu-1:-1].to(int)
-        output = output[:-nu-1]
-        f = output[:output.shape[0]//3]
-        F = output[output.shape[0]//3:2*output.shape[0]//3]
-        xi = output[2*output.shape[0]//3:]
-        plt.figure()
-        plt.plot(xi.detach().numpy(), f.detach().numpy(), label="Asymptotic sample density")
-        plt.hist(lambda_, bins=100, density=True, label="Sample density")
-        plt.hist(tau_fit.detach().numpy(), weights=3*np.ones(tau_fit.shape[0])/tau_fit.shape[0]*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=100, label="Asymptotic population density")
-        plt.hist(t.detach().numpy(), weights=4*wt.detach().numpy()*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=150, label="Population density")
-        plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
-        plt.legend()
-        plt.show()
-        
-        output_i = Fx(tau_init, None, d, wd, c, mu, weights, w_args, omega, method, False) 
-        nu = output_i[-1].to(int)
-        omegai = output_i[-nu-1:-1].to(int)
-        output_i = output_i[:-nu-1]
-        f_i = output_i[:output_i.shape[0]//3]
-        F_i = output_i[output_i.shape[0]//3:2*output_i.shape[0]//3]
-        xi_i = output_i[2*output_i.shape[0]//3:]
-        
-        plt.figure()
-        plt.plot(xi.detach().numpy(), F.detach().numpy(), label="Fit sample cdf")
-        plt.plot(xi_i.detach().numpy(), F_i.detach().numpy(), label="Init sample cdf")
-        plt.hist(lambda_, bins=200, cumulative = True, histtype="step", density=True, label="Sample cdf")
-        plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
-        plt.legend()
-        plt.show()
-        
-        plt.figure()
-        plt.hist(tau_fit.detach().numpy(), bins=200, cumulative = True, histtype="step", density=True, label="Fit population cdf")
-        plt.hist(tau_init.detach().numpy(), bins=200, cumulative = True, histtype="step", density=True, label="Init population cdf")
-        plt.hist(t.detach().numpy(), weights=wt.detach().numpy(), cumulative = True, histtype="step", bins=200, label="Population density")
-        plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
-        plt.legend()
-        plt.show()    
+        if LD:
+            # Plot the results        
+            Fx = f_xi.apply
+            output = Fx(tau_fit_LD, None, d, wd, c, mu, weights, w_args, omega, method, False) 
+            nu = output[-1].to(int)
+            omegai = output[-nu-1:-1].to(int)
+            output = output[:-nu-1]
+            f = output[:output.shape[0]//3]
+            F = output[output.shape[0]//3:2*output.shape[0]//3]
+            xi = output[2*output.shape[0]//3:]
+            plt.figure()
+            plt.plot(xi.detach().numpy(), f.detach().numpy(), label="(LD) Asymptotic sample density")
+            plt.hist(lambda_, bins=100, density=True, label="Sample density")
+            plt.hist(tau_fit_LD.detach().numpy(), weights=3*np.ones(tau_fit_LD.shape[0])/tau_fit_LD.shape[0]*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=100, label="(LD) Asymptotic population density")
+            plt.hist(t.detach().numpy(), weights=4*wt.detach().numpy()*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=150, label="Population density")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()
+            
+            output_i = Fx(torch.tensor(tau_init), None, d, wd, c, mu, weights, w_args, omega, method, False) 
+            nu = output_i[-1].to(int)
+            omegai = output_i[-nu-1:-1].to(int)
+            output_i = output_i[:-nu-1]
+            f_i = output_i[:output_i.shape[0]//3]
+            F_i = output_i[output_i.shape[0]//3:2*output_i.shape[0]//3]
+            xi_i = output_i[2*output_i.shape[0]//3:]
+            
+            plt.figure()
+            plt.plot(xi.detach().numpy(), F.detach().numpy(), label="Fit (LD) sample cdf")
+            plt.plot(xi_i.detach().numpy(), F_i.detach().numpy(), label="Init sample cdf")
+            plt.hist(lambda_, bins=200, cumulative = True, histtype="step", density=True, label="Sample cdf")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()
+            
+            plt.figure()
+            plt.hist(tau_fit_LD.detach().numpy(), bins=200, cumulative = True, histtype="step", density=True, label="Fit (LD) population cdf")
+            plt.hist(tau_init, bins=200, cumulative = True, histtype="step", density=True, label="Init population cdf")
+            plt.hist(t.detach().numpy(), weights=wt.detach().numpy(), cumulative = True, histtype="step", bins=200, label="Population density")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()    
+        if MD:
+            # Plot the results        
+            Fx = f_xi.apply
+            output = Fx(tau_fit_MD, None, d, wd, c, mu, weights, w_args, omega, method, False) 
+            nu = output[-1].to(int)
+            omegai = output[-nu-1:-1].to(int)
+            output = output[:-nu-1]
+            f = output[:output.shape[0]//3]
+            F = output[output.shape[0]//3:2*output.shape[0]//3]
+            xi = output[2*output.shape[0]//3:]
+            plt.figure()
+            plt.plot(xi.detach().numpy(), f.detach().numpy(), label="(MD) Asymptotic sample density")
+            plt.hist(lambda_, bins=100, density=True, label="Sample density")
+            plt.hist(tau_fit_MD.detach().numpy(), weights=3*np.ones(tau_fit_MD.shape[0])/tau_fit_MD.shape[0]*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=100, label="(MD) Asymptotic population density")
+            plt.hist(t.detach().numpy(), weights=4*wt.detach().numpy()*np.max(f.detach().numpy())/np.max(wt.detach().numpy()), bins=150, label="Population density")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()
+            
+            output_i = Fx(torch.tensor(tau_init), None, d, wd, c, mu, weights, w_args, omega, method, False) 
+            nu = output_i[-1].to(int)
+            omegai = output_i[-nu-1:-1].to(int)
+            output_i = output_i[:-nu-1]
+            f_i = output_i[:output_i.shape[0]//3]
+            F_i = output_i[output_i.shape[0]//3:2*output_i.shape[0]//3]
+            xi_i = output_i[2*output_i.shape[0]//3:]
+            
+            plt.figure()
+            plt.plot(xi.detach().numpy(), F.detach().numpy(), label="Fit (MD) sample cdf")
+            plt.plot(xi_i.detach().numpy(), F_i.detach().numpy(), label="Init sample cdf")
+            plt.hist(lambda_, bins=200, cumulative = True, histtype="step", density=True, label="Sample cdf")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()
+            
+            plt.figure()
+            plt.hist(tau_fit_MD.detach().numpy(), bins=200, cumulative = True, histtype="step", density=True, label="Fit (MD) population cdf")
+            plt.hist(tau_init, bins=200, cumulative = True, histtype="step", density=True, label="Init population cdf")
+            plt.hist(t.detach().numpy(), weights=wt.detach().numpy(), cumulative = True, histtype="step", bins=200, label="Population density")
+            plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+            plt.legend()
+            plt.show()   
     
     return estimator_LD, estimator_MD, tau_init, S
 
