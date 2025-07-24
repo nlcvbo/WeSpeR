@@ -623,7 +623,7 @@ def loss_LWO():
         return ((lambda_ - lambda_k)**2).mean()
     return loss_fn
 
-def WeSpeR_MD_minimization(lambda_, tau_init, wt = None, d = torch.ones(1), wd = torch.ones(1), c = 0.1, mu = 0.1, weights = 'test', w_args = None, omega = 100, lr = 1e-2, n_epochs = 100, decay = 1., loss_type="w2", method = 'root', save_all_tau = False, verbose = True):   
+def WeSpeR_MD_minimization(lambda_, tau_init, wt = None, d = torch.ones(1), wd = torch.ones(1), c = 0.1, mu = 0.1, weights = 'test', w_args = None, omega = 100, lr = 1e-2, n_epochs = 100, decay = 1., loss_type="w2", method = 'root', save_all_tau = False, verbose = True, plot_loss = False):   
     model = WeSpeR_MD_model(tau_init, wt = wt, d = d, wd = wd, c =c, mu = mu, weights = weights, w_args = w_args, omega = omega, method = method, verbose = False)
     if loss_type == "w2":
         loss_fn = loss_wasserstein_1D_cdf(p=2, regu1=0.1, regu2=0.1) # we can also use loss_composite(p=2, regu=1)
@@ -680,7 +680,7 @@ def WeSpeR_MD_minimization(lambda_, tau_init, wt = None, d = torch.ones(1), wd =
             if n_epochs < 11 or i % min((n_epochs // 10),10) == 0:
                 print("Loss epoch", i, ":", loss.item())
         
-    if verbose:
+    if plot_loss:
         print("Final loss :", best_loss)
         plt.figure()
         plt.semilogy(np.array(running_loss))

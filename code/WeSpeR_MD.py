@@ -117,7 +117,7 @@ class WeSpeR_MD(BaseEstimator, TransformerMixin):
 
         ddof = 0 if self.bias else (W**2).sum()/n**2
         if c is None:
-            self.c = (n-ddof)/p
+            self.c = p/(n-ddof)
         else:
             self.c = c
         lambda_, U = sp.linalg.eigh(S)
@@ -181,9 +181,8 @@ class WeSpeR_MD(BaseEstimator, TransformerMixin):
             self.location_ = np.zeros(X.shape[1], dtype=X.dtype)
 
         ddof = 0 if self.bias else (W**2).sum()/n**2
-        S = X.T @  (W[:, None] * X)/(n-ddof)
         if c is None:
-            self.c = (n-ddof)/p
+            self.c = p/(n-ddof)
         else:
             self.c = c
         lambda_, U = sp.linalg.eigh(S)

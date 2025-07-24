@@ -1,21 +1,8 @@
 
 import numpy as np
 from scipy.linalg import eigh_tridiagonal 
-import matplotlib
-try:
-    matplotlib.use('tkagg')
-except:
-    pass
-import matplotlib.pyplot as plt
-plt.ion()
-
-import time
 from scipy.stats import norm
 from numba import jit
-import jax
-import jax.numpy as jnp
-from matfree import decomp, funm, stochtrace, eig
-from pylanczos import PyLanczos
 
 @jit(nopython=True)
 def lanczos(A, v, K, ortho = False):
@@ -61,6 +48,29 @@ def lanczos_f(A, v, K, f, ortho  =False):
 
     return V @ (fT @ e1)
 
+def lanczos_fA(A, K, f, num_probes = 1, v0=None, ortho=False):
+    assert num_probes >= 1
+    n = A.shape[0]
+
+    if v0 is None:
+        v0 = np.random.randn(n)
+    v0 = v0 / np.linalg.norm(v0)
+
+    fA_approx = np.zeros((n,n))
+    for k in range(num_probes):
+        alpha, beta, V = lanczos(A, v0, K, ortho=ortho)
+
+        # Compute f(T)
+        eigvals, eigvecs = eigh_tridiagonal(alpha, beta)
+        f_T = eigvecs @ np.diag(f(eigvals)) @ eigvecs.T
+
+        # Approximate f(A) ≈ V f(T) V^T
+        fA_approx += V @ f_T @ V.T
+        
+        v0 = np.random.randn(n)
+        v0 = v0 / np.linalg.norm(v0)
+    return fA_approx/num_probes
+
 def lanczos_quadrature(A, num_probes, K, ortho = False):
     n = A.shape[0]
     all_eigs = []
@@ -85,72 +95,3 @@ def lanczos_quadrature(A, num_probes, K, ortho = False):
     csd_estimates /= num_probes
 
     return grid_points, csd_estimates
-
-def pylanczos_quadrature(A, num_probes, K, ortho = False):
-    n = A.shape
-    all_eigs = []
-    all_weights = []
-
-    for probe_idx in range(num_probes):
-        engine = PyLanczos(A, True, K) 
-        eigvals, eigvecs = engine.run()
-
-        weights = eigvecs[0, :]**2
-        all_eigs.append(eigvals)
-        all_weights.append(weights)
-
-    grid_points = np.sort(np.concatenate(all_eigs))[::num_probes]
-    csd_estimates = np.zeros(grid_points.shape[0], dtype=np.float64)
-    for probe_idx in range(num_probes):
-        for i, grid_point in enumerate(grid_points):
-            indicator = all_eigs[probe_idx] <= grid_point
-            csd_estimates[i] += (all_weights[probe_idx][indicator]).sum()
-    csd_estimates /= num_probes
-
-    return grid_points, csd_estimates
-
-if __name__ == '__main__':
-    p = 45000
-    n = 45000
-    K = 1000
-    num_probes = 1
-
-    beg = time.time()
-    X = np.random.normal(size=(p,n))
-    S = X @ X.T/n 
-    v = np.random.normal(size=p)
-    end = time.time()
-    print("Sampling:",end - beg, "s")
-
-    f = lambda x: np.sqrt(x)
-
-    # beg = time.time()
-    # hat_fv = lanczos_f(S, v, K, f, ortho = True)
-    # end = time.time()
-    # print("Lanczos:",end - beg, "s")
-
-    beg = time.time()
-    grid_points, csd_estimates = lanczos_quadrature(S, num_probes, K, ortho = True)
-    end = time.time()
-    print("SLQ:",end - beg, "s")
-    
-    # beg = time.time()
-    # grid_points2, csd_estimates2 = pylanczos_quadrature(S, num_probes, K, ortho = True)
-    # end = time.time()
-    # print("SLQ:",end - beg, "s")
-
-    # beg = time.time()
-    # lambda_, V = np.linalg.eigh(S)
-    # end = time.time()
-    # print("Eigh:",end - beg, "s")
-    # fv = V @ (f(lambda_)[:,None] * V.T @ v)
-
-    # print(np.linalg.norm(fv-hat_fv)**2/p)
-    # print(np.linalg.norm(fv)**2/p)
-
-
-    plt.figure()
-    plt.plot(grid_points, csd_estimates)
-    # plt.plot(grid_points2, csd_estimates2)
-    # plt.hist(lambda_, bins=200, histtype='step', density=True, cumulative=True)
-    plt.show()
