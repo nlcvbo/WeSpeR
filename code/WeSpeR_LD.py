@@ -55,7 +55,7 @@ class WeSpeR_LD(BaseEstimator, TransformerMixin):
         self.p_tau = p_tau 
 
         ddof = 0 if self.bias else (W**2).sum()/n**2
-        self.c = (n-ddof)/p
+        self.c = p/(n-ddof)
 
         if tau_init is None:
             e_S = np.linalg.eigvalsh(S)
