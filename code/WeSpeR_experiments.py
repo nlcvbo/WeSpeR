@@ -691,8 +691,6 @@ if __name__ == '__main__':
         pass
     
     warnings.filterwarnings('ignore')
-    
-    tau_fit = None
 
     estimator_LD, estimator_MD, tau_init, S =  WeSpeR_experiment_1(tau_init = None, p = 100, n = 1000, plots = True)
     # estimator_LD, estimator_MD, estimator_HD, tau_init, S =  WeSpeR_experiment_2(tau_init = None, p = 100, n = 1000)
