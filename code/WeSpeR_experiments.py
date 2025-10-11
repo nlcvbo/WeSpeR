@@ -508,13 +508,11 @@ def WeSpeR_experiment_2(tau_init = None, p = 2000, n = 20000):
     return estimator_LD, estimator_MD, estimator_HD, tau_init, S
 
 def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
-    LD = True
-    MD = True
     plots = False
 
     c = p/n
     
-    x = np.linspace(0,1,2000)
+    x = np.linspace(0,1,p)
     H1 = 1 - (1-x**3)**(1/3)
     H2 = (1 - (1-x)**3)**(1/3)
     H3 = (1 - np.abs(1-2*x)**3)**(1/3)/2
@@ -529,6 +527,7 @@ def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
         H = H3
     else:
         H = H4
+        
     t = torch.zeros(p)
     for kappa in range(p):
         j_k = max(np.argmax((((kappa+1/2) - p*H) < 0).astype(int)) - 1, 0)
@@ -554,7 +553,7 @@ def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
     d = d/(d*wd).sum(axis=0)
     
     n_epochs_LD = 100
-    n_epochs_MD = 100
+    n_epochs_MD = 200
     lr = 5e-2
     omega = min(400, min(p,n))
     p_tau = p
@@ -567,7 +566,10 @@ def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
     else:
         w_args = [alpha, Kt]
     
-    tau_pop = np.array([1]*(p//5)+[3]*(2*p//5)+[10]*(p - p//5 - 2*p//5))
+    tau_pop = t
+    plt.figure()
+    plt.hist(tau_pop.numpy(), bins=100, density=True, label="H1 histogram")
+    plt.show()
     
     if weights == "ewma":
         beta = alpha/(1-np.exp(-alpha))
@@ -639,9 +641,9 @@ def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
             tau_init = np.sort(np.concatenate([tau_init, tau_add]))
             tau_init = tau_init/tau_init.mean()*e_SLWO.mean()
         tau_init_LD = np.sort(np.random.choice(tau_init, p))
-        tau_init_LD = torch.tensor(tau_init)
+        tau_init_LD = torch.tensor(tau_init_LD)
         tau_init_MD = np.sort(np.random.choice(tau_init, p_tau))
-        tau_init_MD = torch.tensor(tau_init)
+        tau_init_MD = torch.tensor(tau_init_MD)
     
     # Optimize tau LD
     print("WeSpeR_LD:")
@@ -680,6 +682,15 @@ def WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000):
         plt.title(r"Q-Q plot for $H_4$")
     plt.legend()
     plt.show()
+
+    plt.figure()
+    plt.hist(estimator_LD.get_tau().detach().numpy(), bins=200, cumulative = False, histtype="step", density=True, label="Fit (LD) population pdf")
+    plt.hist(estimator_MD.get_tau().detach().numpy(), bins=200, cumulative = False, histtype="step", density=True, label="Fit (MD) population pdf")
+    plt.hist(lambda_, bins=200, cumulative = False, histtype="step", density=True, label="Sample pdf")
+    plt.hist(tau_pop.detach().numpy(), weights=wt.detach().numpy(), cumulative = False, density=True, histtype="step", bins=200, label="Population density")
+    plt.title("c="+str(c)+", "+weights+", alpha="+str(w_args[0])+", omega="+str(omega))
+    plt.legend()
+    plt.show()   
     
     return estimator_LD, estimator_MD
 
@@ -692,6 +703,9 @@ if __name__ == '__main__':
     
     warnings.filterwarnings('ignore')
 
-    estimator_LD, estimator_MD, tau_init, S =  WeSpeR_experiment_1(tau_init = None, p = 100, n = 1000, plots = True)
+    # estimator_LD, estimator_MD, tau_init, S =  WeSpeR_experiment_1(tau_init = None, p = 100, n = 1000, plots = True)
     # estimator_LD, estimator_MD, estimator_HD, tau_init, S =  WeSpeR_experiment_2(tau_init = None, p = 100, n = 1000)
-    # estimator_LD, estimator_MD = WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 100, n = 1000)
+    estimator_LD, estimator_MD = WeSpeR_experiment_3(H_distrib = 1, tau_init = None, p = 2000, n = 20000)
+    # estimator_LD, estimator_MD = WeSpeR_experiment_3(H_distrib = 2, tau_init = None, p = 2000, n = 20000)
+    # estimator_LD, estimator_MD = WeSpeR_experiment_3(H_distrib = 3, tau_init = None, p = 2000, n = 20000)
+    # estimator_LD, estimator_MD = WeSpeR_experiment_3(H_distrib = 4, tau_init = None, p = 2000, n = 20000)
